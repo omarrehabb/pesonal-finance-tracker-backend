@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block title %} Welcome
+{% endblock %}
+
+{% block content %}
+<h1>The front page</h1>
+<div className="balance-display">
+    <h1>Current Balance</h1>
+    <p>${balance}</p> {/* This would be dynamically fetched */}
+</div>
+<div className="recent-transactions">
+    <h2>Recent Transactions</h2>
+    <ul>
+      {transactions.map(transaction => (
+        <li key={transaction.id}>
+          <span>{transaction.date} - {transaction.category} - {transaction.transaction_type}: ${transaction.amount}</span>
+        </li>
+      ))}
+    </ul>
+</div>
+<div className="budget-overview">
+    <h2>Budget Overview</h2>
+    <ul>
+      {budgets.map(budget => (
+        <li key={budget.id}>
+          <span>{budget.category}: ${budget.spent} / ${budget.total}</span>
+        </li>
+      ))}
+    </ul>
+</div>
+  
+{% endblock %}
