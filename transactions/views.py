@@ -1,12 +1,36 @@
-from rest_framework import viewsets, permissions, filters, status
+from rest_framework import viewsets, permissions, filters, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta
 from .models import Transaction, UserProfile
-from .serializers import TransactionSerializer, UserProfileSerializer
+from .serializers import TransactionSerializer, UserProfileSerializer, RegisterSerializer, UserSerializer
 from django.db.models.functions import TruncMonth, TruncWeek, TruncDay
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+
+
+def update_user_balance(user):
+    # Calculate balance from all transactions
+    income = Transaction.objects.filter(
+        user=user, 
+        transaction_type='income'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    expenses = Transaction.objects.filter(
+        user=user, 
+        transaction_type='expense'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Update user profile balance
+    profile, created = UserProfile.objects.get_or_create(user=user, defaults={'balance': 0})
+    profile.balance = income - expenses
+    profile.save()
+    
+    return profile
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -26,9 +50,18 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return Transaction.objects.filter(user=user)
     
     def perform_create(self, serializer):
-        """Save the transaction and update user balance"""
-        serializer.save(user=self.request.user)
-    
+        transaction = serializer.save(user=self.request.user)
+        update_user_balance(self.request.user)
+
+    def perform_update(self, serializer):
+        transaction = serializer.save()
+        update_user_balance(transaction.user)
+
+    def perform_destroy(self, instance):
+        user = instance.user
+        instance.delete()
+        update_user_balance(user)
+            
     @action(detail=False, methods=['get'])
     def summary(self, request):
         """
@@ -121,6 +154,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         })
 
 
+
 class UserProfileViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -135,4 +169,41 @@ class UserProfileViewSet(viewsets.ReadOnlyModelViewSet):
         user = request.user
         profile = UserProfile.objects.get(user=user)
         serializer = self.get_serializer(profile)
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = RegisterSerializer
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        return Response({
+            "user": UserSerializer(user, context=self.get_serializer_context()).data,
+            "message": "User registered successfully",
+        }, status=status.HTTP_201_CREATED)
         return Response(serializer.data)
+    
+
+class CustomLoginView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        user = authenticate(username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            return Response({
+                'success': True,
+                'username': user.username
+            })
+        else:
+            return Response({
+                'success': False,
+                'message': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)

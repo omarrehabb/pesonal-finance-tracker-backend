@@ -54,3 +54,46 @@ class TransactionSerializer(serializers.ModelSerializer):
         profile.save()
         
         return transaction
+
+class RegisterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name']
+        extra_kwargs = {
+            'first_name': {'required': False},
+            'last_name': {'required': False}
+        }
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"password": "Password fields didn't match."})
+        return attrs
+    
+    def create(self, validated_data):
+        # Remove password2 as it's only used for validation
+        validated_data.pop('password2')
+        
+        # Create user
+        user = User.objects.create(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', '')
+        )
+        
+        # Set password
+        user.set_password(validated_data['password'])
+        user.save()
+        
+        # Create user profile if one doesn't already exist
+        UserProfile.objects.get_or_create(
+            user=user,
+            defaults={'balance': 0}
+        )
+        
+        return user
+    
