@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/', include('transactions.urls')),
     path('api-auth/', include('rest_framework.urls')),  # Optional for browsable API
     path('', include(tf_urls)),  # Two-Factor authentication URLs
+    path('api/budgets/', include('budgets.urls')),
 ]
