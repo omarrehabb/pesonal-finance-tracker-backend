@@ -169,6 +169,7 @@ class UserProfileViewSet(viewsets.ReadOnlyModelViewSet):
         user = request.user
         profile = UserProfile.objects.get(user=user)
         serializer = self.get_serializer(profile)
+        return Response(serializer.data)
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
