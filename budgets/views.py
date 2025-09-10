@@ -48,10 +48,10 @@ class BudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
         context['week'] = self.request.query_params.get('week')
         return context
     
-    def perform_destroy(self, instance):
-        # Soft delete - mark as inactive instead of actual deletion
-        instance.is_active = False
-        instance.save()
+    # def perform_destroy(self, instance):
+    #     # Soft delete - mark as inactive instead of actual deletion
+    #     instance.is_active = False
+    #     instance.save()
 
 
 @api_view(['GET'])
