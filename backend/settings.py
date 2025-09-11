@@ -12,7 +12,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
+try:
+    import dj_database_url  # Optional in local dev; used in deploy
+except ImportError:  # pragma: no cover
+    dj_database_url = None
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -154,7 +157,7 @@ DATABASES = {
 
 # If DATABASE_URL is provided, use it (e.g., Postgres on Neon)
 _db_url = os.environ.get('DATABASE_URL')
-if _db_url:
+if _db_url and dj_database_url is not None:
     DATABASES['default'] = dj_database_url.parse(_db_url, conn_max_age=600)
 
 
