@@ -27,7 +27,7 @@ jobs:
             exit 1
           fi
           # Authenticate
-          echo "$FLY_API_TOKEN" | flyctl auth token
+          flyctl auth login --access-token "$FLY_API_TOKEN"
           # Create app if it doesn't exist
           flyctl apps create "$FLY_APP_NAME" || true
           # Set secrets (Allowed hosts defaults to <app>.fly.dev)
