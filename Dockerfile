@@ -3,9 +3,12 @@
 # 1) Build frontend from GitHub
 FROM node:18-alpine AS frontend-build
 ARG FRONTEND_REPO="https://github.com/omarrehabb/personal-finance-tracker-frontend.git"
+# Bump this to force re-clone of frontend during builds
+ARG FRONTEND_CACHE_BUST="0"
 WORKDIR /src
 RUN apk add --no-cache git
-RUN git clone --depth=1 "$FRONTEND_REPO" frontend
+# Echo cache-bust value so this layer changes when the arg does
+RUN echo "cache-bust=$FRONTEND_CACHE_BUST" && git clone --depth=1 "$FRONTEND_REPO" frontend
 WORKDIR /src/frontend
 RUN npm ci --no-audit --no-fund
 # Use same-origin API in production

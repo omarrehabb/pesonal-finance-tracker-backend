@@ -34,4 +34,5 @@ jobs:
             --app "$FLY_APP_NAME" --detach
 
           # Deploy app using Dockerfile + fly.toml
-          flyctl deploy --remote-only --app "$FLY_APP_NAME"
+          flyctl deploy --remote-only --app "$FLY_APP_NAME" \
+            --build-arg FRONTEND_CACHE_BUST="${{ github.run_id }}-${{ github.run_number }}"
