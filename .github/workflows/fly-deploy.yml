@@ -27,6 +27,10 @@ jobs:
         with:
           access-token: ${{ secrets.FLY_API_TOKEN }}
 
+      - name: Verify Fly auth
+        run: |
+          flyctl auth whoami || flyctl auth login --access-token "$FLY_API_TOKEN"
+
       - name: Deploy to Fly
         run: |
           # Set secrets on Fly app
@@ -35,7 +39,7 @@ jobs:
             DJANGO_DEBUG=false \
             DJANGO_ALLOWED_HOSTS="${FLY_APP_NAME}.fly.dev" \
             DATABASE_URL="$DATABASE_URL" \
-            --app "$FLY_APP_NAME" --detach
+            --app "$FLY_APP_NAME" --detach --access-token "$FLY_API_TOKEN"
 
           # Deploy app using Dockerfile + fly.toml
-          flyctl deploy --remote-only --app "$FLY_APP_NAME"
+          flyctl deploy --remote-only --app "$FLY_APP_NAME" --access-token "$FLY_API_TOKEN"
