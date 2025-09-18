@@ -8,15 +8,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # If your secrets live under a GitHub Environment, set its name here
+    # and ensure FLY_API_TOKEN, FLY_APP_NAME, DJANGO_SECRET_KEY, DATABASE_URL
+    # are defined in that environment. Otherwise, remove this line.
+    environment: production
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@v1
-
-      - name: Authenticate with Fly
-        run: flyctl auth login --access-token "${{ secrets.FLY_API_TOKEN }}"
 
       - name: Deploy to Fly
         env:
@@ -30,7 +33,8 @@ jobs:
             DJANGO_DEBUG=false \
             DJANGO_ALLOWED_HOSTS="${FLY_APP_NAME}.fly.dev" \
             DATABASE_URL="$DATABASE_URL" \
-            --app "$FLY_APP_NAME" --detach
+            --app "$FLY_APP_NAME" --detach \
+            --access-token "$FLY_API_TOKEN"
 
           # Deploy app using Dockerfile + fly.toml
-          flyctl deploy --remote-only --app "$FLY_APP_NAME"
+          flyctl deploy --remote-only --app "$FLY_APP_NAME" --access-token "$FLY_API_TOKEN"
