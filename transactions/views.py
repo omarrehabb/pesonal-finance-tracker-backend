@@ -8,9 +8,12 @@ from .models import Transaction, UserProfile
 from .serializers import TransactionSerializer, UserProfileSerializer, RegisterSerializer, UserSerializer
 from django.db.models.functions import TruncMonth, TruncWeek, TruncDay
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_GET
 
 
 def update_user_balance(user):
@@ -208,3 +211,17 @@ class CustomLoginView(APIView):
                 'success': False,
                 'message': 'Invalid credentials'
             }, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class LogoutView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        logout(request)
+        return Response({'success': True})
+
+
+@ensure_csrf_cookie
+@require_GET
+def get_csrf(request):
+    return JsonResponse({"detail": "ok"})

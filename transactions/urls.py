@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import TransactionViewSet, UserProfileViewSet, RegisterView
 from .tfa_views import TOTPCreateView, TOTPVerifyView, TOTPDeleteView, has_2fa
-from .views import CustomLoginView
+from .views import CustomLoginView, LogoutView, get_csrf
 
 
 # Create a router and register our viewsets with it
@@ -20,5 +20,7 @@ urlpatterns = [
     path('2fa/delete/', TOTPDeleteView.as_view(), name='2fa-delete'),
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('2fa/status/', has_2fa, name='2fa-status'),
-     path('auth/login/', CustomLoginView.as_view(), name='login'),
+    path('auth/login/', CustomLoginView.as_view(), name='login'),
+    path('auth/logout/', LogoutView.as_view(), name='logout'),
+    path('auth/csrf/', get_csrf, name='csrf'),
 ]
