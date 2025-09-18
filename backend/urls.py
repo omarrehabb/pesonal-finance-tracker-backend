@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, re_path, include
 from two_factor.urls import urlpatterns as tf_urls
 # Comment out the AdminSiteOTPRequired import for now
 # from two_factor.admin import AdminSiteOTPRequired
@@ -16,4 +16,6 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),  # Optional for browsable API
     path('', include(tf_urls)),  # Two-Factor authentication URLs
     path('api/budgets/', include('budgets.urls')),
+    # Catch-all: serve SPA for non-API/admin/two-factor paths
+    re_path(r'^(?!admin/|api/|api-auth/|static/|media/|account/).*$', index),
 ]
