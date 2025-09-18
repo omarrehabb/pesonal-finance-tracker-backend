@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import TransactionViewSet, UserProfileViewSet, RegisterView
 from .tfa_views import TOTPCreateView, TOTPVerifyView, TOTPDeleteView, has_2fa
-from .views import CustomLoginView, LogoutView, get_csrf
+from .views import CustomLoginView, LogoutView, get_csrf, WhoAmIView
 
 
 # Create a router and register our viewsets with it
@@ -23,4 +23,5 @@ urlpatterns = [
     path('auth/login/', CustomLoginView.as_view(), name='login'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/csrf/', get_csrf, name='csrf'),
+    path('auth/whoami/', WhoAmIView.as_view(), name='whoami'),
 ]

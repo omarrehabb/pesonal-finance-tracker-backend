@@ -225,3 +225,14 @@ class LogoutView(APIView):
 @require_GET
 def get_csrf(request):
     return JsonResponse({"detail": "ok"})
+
+
+class WhoAmIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        u = request.user
+        return Response({
+            'authenticated': bool(u and u.is_authenticated),
+            'username': getattr(u, 'username', None)
+        })
