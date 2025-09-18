@@ -1,4 +1,3 @@
-# budgets/admin.py
 from django.contrib import admin
 from .models import Budget, BudgetAlert, BudgetTemplate
 

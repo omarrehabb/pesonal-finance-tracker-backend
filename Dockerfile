@@ -16,14 +16,14 @@ RUN npm run build
 FROM python:3.11-slim AS backend
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=backend.settings
+    DJANGO_SETTINGS_MODULE=backend.settings \
+    WEB_CONCURRENCY=1 \
+    GUNICORN_THREADS=2 \
+    GUNICORN_MAX_REQUESTS=1000 \
+    GUNICORN_MAX_REQUESTS_JITTER=100 \
+    GUNICORN_TIMEOUT=60
 
 WORKDIR /app
-
-# System deps for psycopg2
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libpq-dev \
-  && rm -rf /var/lib/apt/lists/*
 
 # Install python deps
 COPY requirements.txt ./
@@ -44,5 +44,5 @@ RUN mkdir -p templates/core static && \
 RUN python manage.py collectstatic --noinput || true
 
 EXPOSE 8000
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
-
+# Use env-driven Gunicorn settings and keep workers low for small VMs
+CMD ["sh", "-c", "exec gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-1} --threads ${GUNICORN_THREADS:-2} --max-requests ${GUNICORN_MAX_REQUESTS:-1000} --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-100} --timeout ${GUNICORN_TIMEOUT:-60} --keep-alive 5 --worker-tmp-dir /dev/shm"]
