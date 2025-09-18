@@ -8,30 +8,22 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # If you use a GitHub Environment for secrets, set its exact name here
-    # (or remove this line to use repo-level secrets)
     environment: production
-    env:
-      # Let flyctl pick up the token implicitly
-      FLYCTL_ACCESS_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      # App + Django secrets available to all steps
-      FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@v1
-        with:
-          access-token: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Verify Fly auth
-        run: |
-          flyctl auth whoami || flyctl auth login --access-token "$FLY_API_TOKEN"
+      
+      - name: Authenticate with Fly (opens browser)
+        run: flyctl auth login
 
       - name: Deploy to Fly
+        env:
+          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           # Set secrets on Fly app
           flyctl secrets set \
@@ -39,7 +31,7 @@ jobs:
             DJANGO_DEBUG=false \
             DJANGO_ALLOWED_HOSTS="${FLY_APP_NAME}.fly.dev" \
             DATABASE_URL="$DATABASE_URL" \
-            --app "$FLY_APP_NAME" --detach --access-token "$FLY_API_TOKEN"
+            --app "$FLY_APP_NAME" --detach
 
           # Deploy app using Dockerfile + fly.toml
-          flyctl deploy --remote-only --app "$FLY_APP_NAME" --access-token "$FLY_API_TOKEN"
+          flyctl deploy --remote-only --app "$FLY_APP_NAME"
