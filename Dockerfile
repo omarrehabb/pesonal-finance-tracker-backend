@@ -38,6 +38,7 @@ COPY --from=frontend-build /src/frontend/build ./frontend_build
 # Prepare templates/static: serve SPA via Django template and Whitenoise
 RUN mkdir -p templates/core static && \
     cp -f frontend_build/index.html templates/core/index.html && \
+    sed -i 's/<title>React App<\/title>/<title>Personal Finance Tracker<\/title>/g' templates/core/index.html && \
     if [ -d frontend_build/static ]; then cp -r frontend_build/static/* static/; fi
 
 # Collect static (no-op in dev, used in prod with Whitenoise)
