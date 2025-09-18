@@ -170,7 +170,7 @@ class UserProfileViewSet(viewsets.ReadOnlyModelViewSet):
     def my_profile(self, request):
         """Get the current user's profile"""
         user = request.user
-        profile = UserProfile.objects.get(user=user)
+        profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'balance': 0})
         serializer = self.get_serializer(profile)
         return Response(serializer.data)
 
