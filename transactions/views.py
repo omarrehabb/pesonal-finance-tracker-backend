@@ -14,6 +14,9 @@ from rest_framework.permissions import AllowAny
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_http_methods
+from django.utils.decorators import method_decorator
+from django.middleware.csrf import get_token
 
 
 def update_user_balance(user):
@@ -236,3 +239,33 @@ class WhoAmIView(APIView):
             'authenticated': bool(u and u.is_authenticated),
             'username': getattr(u, 'username', None)
         })
+
+
+# Compatibility endpoints for legacy frontend pointing to /api-auth/login/
+@require_http_methods(["GET", "POST"])
+@ensure_csrf_cookie
+def legacy_api_auth_login(request):
+    if request.method == "GET":
+        # Force set CSRF cookie
+        get_token(request)
+        return JsonResponse({"detail": "csrf set"})
+
+    # POST: accept both JSON and form-encoded
+    username = request.POST.get("username") or (request.body and getattr(request, 'data', {}).get('username'))
+    password = request.POST.get("password") or (request.body and getattr(request, 'data', {}).get('password'))
+
+    if not username or not password:
+        return JsonResponse({"success": False, "message": "Missing credentials"}, status=400)
+
+    user = authenticate(username=username, password=password)
+    if user is None:
+        return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
+
+    login(request, user)
+    return JsonResponse({"success": True, "username": user.username})
+
+
+@require_http_methods(["POST"]) 
+def legacy_api_auth_logout(request):
+    logout(request)
+    return JsonResponse({"success": True})
