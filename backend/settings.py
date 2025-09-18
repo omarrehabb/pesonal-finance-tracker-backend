@@ -111,13 +111,23 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = False
 
 # Database
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+# Database
+# Only require SSL for Postgres URLs. SQLite doesn't support sslmode.
+_env_db_url = os.environ.get("DATABASE_URL", "").strip()
+if _env_db_url:
+    _ssl_required = _env_db_url.startswith("postgres://") or _env_db_url.startswith("postgresql://")
+    _db_config = dj_database_url.parse(
+        _env_db_url,
         conn_max_age=600,
-        ssl_require=True,
+        ssl_require=_ssl_required,
     )
-}
+else:
+    _db_config = dj_database_url.parse(
+        f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+    )
+
+DATABASES = {"default": _db_config}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

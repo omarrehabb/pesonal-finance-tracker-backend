@@ -1,6 +1,6 @@
-# transactions/models.py
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class Transaction(models.Model):
     TRANSACTION_TYPES = (
@@ -17,7 +17,8 @@ class Transaction(models.Model):
     # Category of income or expense
     category = models.CharField(max_length=50)
     description = models.TextField(blank=True, null=True)
-    date = models.DateTimeField(auto_now_add=True)
+    # Allow client to provide a specific datetime; default to now
+    date = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
         # Get the user's profile to update the balance
