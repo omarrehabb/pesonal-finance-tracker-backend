@@ -15,3 +15,6 @@ primary_region = "fra"
   auto_start_machines = true
   min_machines_running = 0
   processes = ["app"]
+
+[deploy]
+  release_command = "sh -lc 'python manage.py migrate --noinput && if [ -n \"$GOOGLE_CLIENT_ID\" ] && [ -n \"$GOOGLE_CLIENT_SECRET\" ]; then python manage.py setup_google_oauth --domain ${FLY_APP_NAME}.fly.dev --name Production; else echo Skipping Google OAuth setup; fi'"

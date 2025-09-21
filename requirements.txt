@@ -8,3 +8,8 @@ whitenoise==6.7.0
 psycopg2-binary==2.9.9
 dj-database-url==2.2.0
 phonenumberslite==8.13.43
+qrcode[pil]==7.4.2
+django-allauth==0.63.6
+requests==2.32.3
+PyJWT==2.9.0
+cryptography==43.0.1

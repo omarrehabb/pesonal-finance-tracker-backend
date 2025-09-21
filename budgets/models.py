@@ -57,12 +57,15 @@ class Budget(models.Model):
         
         if self.period == 'monthly':
             transactions = transactions.filter(date__month=target_month)
-        elif self.period == 'weekly' and week:
-            # Calculate week start and end dates
+        elif self.period == 'weekly':
+            # Use provided ISO week or current week by default
             import datetime as dt
-            week_start = dt.datetime.strptime(f"{target_year}-W{week}-1", "%Y-W%W-%w").date()
+            iso_week = week
+            if not iso_week:
+                iso_week = datetime.isocalendar(now).week if hasattr(datetime, 'isocalendar') else now.isocalendar()[1]
+            week_start = dt.datetime.strptime(f"{target_year}-W{int(iso_week):02d}-1", "%Y-W%W-%w").date()
             week_end = week_start + dt.timedelta(days=6)
-            transactions = transactions.filter(date__range=[week_start, week_end])
+            transactions = transactions.filter(date__date__range=[week_start, week_end])
         elif self.period == 'yearly':
             # Already filtered by year
             pass
@@ -87,7 +90,8 @@ class Budget(models.Model):
         """Determine budget status based on usage"""
         percentage = self.get_percentage_used(year, month, week)
         
-        if percentage >= 100:
+        # 'over' only when strictly above 100%
+        if percentage > 100:
             return 'over'
         elif percentage >= 80:
             return 'warning'
@@ -101,20 +105,25 @@ class Budget(models.Model):
         return self.get_remaining_amount(year, month, week) < 0
     
     def get_days_remaining(self, year=None, month=None):
-        """Calculate days remaining in current period"""
-        if self.period != 'monthly':
-            return None
-            
-        now = datetime.now()
-        target_year = year or now.year
-        target_month = month or now.month
-        
-        # Get last day of the month
-        last_day = calendar.monthrange(target_year, target_month)[1]
-        
-        # Calculate remaining days
-        current_day = now.day if (target_year == now.year and target_month == now.month) else 1
-        return max(0, last_day - current_day + 1)
+        """Calculate days remaining in current period (monthly/weekly/yearly)"""
+        now = datetime.now().date()
+        if self.period == 'monthly':
+            target_year = year or now.year
+            target_month = month or now.month
+            last_day = calendar.monthrange(target_year, target_month)[1]
+            current_day = now.day if (target_year == now.year and target_month == now.month) else 1
+            return max(0, last_day - current_day + 1)
+        elif self.period == 'weekly':
+            # Days left including today until end of ISO week (Sunday)
+            # Python weekday(): Monday=0..Sunday=6
+            weekday = now.weekday()
+            days_remaining = 6 - weekday + 1  # include today
+            return max(0, days_remaining)
+        elif self.period == 'yearly':
+            import datetime as dt
+            end_of_year = dt.date(now.year, 12, 31)
+            return (end_of_year - now).days + 1
+        return None
     
     def get_daily_budget_remaining(self, year=None, month=None):
         """Calculate daily budget for remaining days"""

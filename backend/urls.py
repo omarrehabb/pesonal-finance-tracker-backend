@@ -13,6 +13,7 @@ urlpatterns = [
     path('', index, name = 'index'),
     path('contact/', contact, name = 'contact'),
     path('admin/', admin.site.urls),
+    path('accounts/', include('allauth.urls')),
     path('api/', include('transactions.urls')),
     # Legacy auth compatibility for frontend hitting DRF's login/logout
     path('api-auth/login/', legacy_api_auth_login, name='legacy-login'),

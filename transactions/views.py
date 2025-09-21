@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
+from django_otp import user_has_device
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
@@ -205,9 +206,12 @@ class CustomLoginView(APIView):
         
         if user is not None:
             login(request, user)
+            requires_2fa = user_has_device(user, confirmed=True)
+            # Do not mark session as verified here; TOTPVerifyView will set it.
             return Response({
                 'success': True,
-                'username': user.username
+                'username': user.username,
+                'two_factor_required': requires_2fa,
             })
         else:
             return Response({
@@ -220,8 +224,17 @@ class LogoutView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        logout(request)
-        return Response({'success': True})
+        # Flush session to ensure OTP flags and sessionid are cleared
+        try:
+            request.session.flush()
+        except Exception:
+            # Fallback to standard logout
+            logout(request)
+        resp = Response({'success': True})
+        # Invalidate cookies on client
+        resp.delete_cookie('sessionid')
+        resp.delete_cookie('csrftoken')
+        return resp
 
 
 @ensure_csrf_cookie
@@ -262,7 +275,8 @@ def legacy_api_auth_login(request):
         return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
 
     login(request, user)
-    return JsonResponse({"success": True, "username": user.username})
+    requires_2fa = user_has_device(user, confirmed=True)
+    return JsonResponse({"success": True, "username": user.username, "two_factor_required": requires_2fa})
 
 
 @require_http_methods(["POST"]) 

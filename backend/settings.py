@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
 
     # Your apps
     "core",
@@ -42,18 +43,31 @@ INSTALLED_APPS = [
     "django_otp.plugins.otp_static",
     "two_factor",
     "corsheaders",
+    # Social auth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
-        # "transactions.authentication.TwoFactorAuthentication",
-    ],
 }
+
+# Authentication classes with optional 2FA enforcement
+_base_auth_classes = [
+    "rest_framework.authentication.SessionAuthentication",
+    "rest_framework.authentication.BasicAuthentication",
+]
+if os.environ.get("DJANGO_ENFORCE_2FA", "false").lower() == "true":
+    # Enforce OTP: only use our 2FA authenticator for API views by default
+    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = [
+        "transactions.authentication.TwoFactorAuthentication",
+    ]
+else:
+    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = _base_auth_classes
 
 # Two-factor authentication
 LOGIN_URL = "two_factor:login"
@@ -67,6 +81,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -101,6 +116,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
     f"https://{os.environ.get('FLY_APP_NAME', '')}.fly.dev",
 ]
 CORS_ALLOW_CREDENTIALS = True
@@ -155,3 +172,44 @@ if not DEBUG:
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# Django allauth / sites
+SITE_ID = 1
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+)
+
+# Minimal account settings (email optional; no email verification for demo)
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+ACCOUNT_ADAPTER = "core.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "core.adapters.SocialAdapter"
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = os.environ.get(
+    "ACCOUNT_DEFAULT_HTTP_PROTOCOL",
+    "https" if not DEBUG else "http",
+)
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"prompt": "select_account"},
+    }
+}
+
+# Skip the allauth intermediate confirmation page and jump straight to the
+# provider authorization screen when hitting /accounts/<provider>/login/
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Allow 'next=' redirects to these domains (for dev convenience)
+ACCOUNT_ALLOWED_REDIRECT_DOMAINS = [
+    "localhost:3000",
+    "127.0.0.1:3000",
+]
